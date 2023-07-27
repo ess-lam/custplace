@@ -17,6 +17,10 @@
         __FILE__,
         'flush_rewrite_rules'
     );
+
     if (is_admin()) {
-        require_once plugin_dir_path(__FILE__) . 'admin/config-test1.php';
+        require_once __DIR__ . '/admin/config-test1.php';
+        // require_once plugin_dir_path(__FILE__) . 'admin/config-test1.php';
     }
+
+    

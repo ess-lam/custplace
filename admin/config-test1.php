@@ -172,8 +172,8 @@
     function cp_settings_section_callback(  ) { 
         echo __( '', 'custplace_plugin' );
     }
-    
-    
+
+        // callback function of "cp_add_admin_menu" to render the settings page 
     function cp_options_page(  ) { 
         // check user capabilities
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -204,6 +204,41 @@
 
         </form>
         <?php
-    
+        
     }
+        
+
+
+        // get the order infos with the status completed 
+    function cp_woocommerce_order_status_completed( $order_id ) {
+        $order = new WC_Order($order_id);
+        
+        $order_infos['order_id'] = $order->get_id();
+        $order_infos['costumer_last_name'] = $order->get_billing_last_name();
+        $order_infos['costumer_first_name'] = $order->get_billing_first_name();
+        $order_infos['costumer_email'] = $order->get_billing_email();
+        $order_infos['products'] = array();
+        $item_sku = array();
+
+        foreach( $order->get_items() as $item_id => $item ) {
+            // $product_id = $item->get_product_id();
+            $product_name = $item->get_name();
+            $product = $item->get_product();
+            $item_sku[] = $product->get_sku();
+            $product_link = $product->get_permalink();
+
+            array_push($order_infos['products'], array(
+                'sku'           => $item_sku,
+                'name'          => $product_name,
+                'product_link'  => $product_link 
+            ));
+        }
+        var_dump($order_infos); 
+        die();
+    }
+    add_action( 'woocommerce_order_status_completed', 'cp_woocommerce_order_status_completed', 10, 1 );
+    
+    
+    
+
     
