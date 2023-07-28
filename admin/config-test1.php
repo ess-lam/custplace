@@ -218,13 +218,12 @@
         $order_infos['costumer_first_name'] = $order->get_billing_first_name();
         $order_infos['costumer_email'] = $order->get_billing_email();
         $order_infos['products'] = array();
-        $item_sku = array();
 
         foreach( $order->get_items() as $item_id => $item ) {
             // $product_id = $item->get_product_id();
             $product_name = $item->get_name();
             $product = $item->get_product();
-            $item_sku[] = $product->get_sku();
+            $item_sku = $product->get_sku();
             $product_link = $product->get_permalink();
 
             array_push($order_infos['products'], array(
