@@ -1,11 +1,31 @@
 <?php
 
-class CustpGonfig
+class Custplace
 {
     function __construct()
     {
         add_action( 'admin_menu', array($this, 'add_admin_menu')  );
         add_action( 'admin_init', array($this, 'settings_init') );
+        add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
+    }
+
+    public static function activate()
+    {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'custplace';
+        $sql = "CREATE TABLE $table_name (
+            id int unsigned NOT NULL AUTO_INCREMENT,
+            id_order int unsigned NOT NULL,
+            date_order date NOT NULL,
+            status_order varchar(255) NOT NULL,
+            PRIMARY KEY  (id)
+            );";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+
+        // Clear the permalinks after the post type has been registered.
+	    flush_rewrite_rules(); 
     }
 
     function add_admin_menu(  ) 
@@ -15,8 +35,7 @@ class CustpGonfig
     }
 
     function settings_init(  ) 
-    { 
-
+    {
         register_setting( 'pluginPage', 'custp_settings' );
         
         $sections = array( 
@@ -39,7 +58,7 @@ class CustpGonfig
             add_settings_section(
                 $section['id'], 
                 __( $section['title'], 'custplace_plugin' ), 
-                array($this, 'settings_section_callback'), 
+                function() { return ""; }, 
                 'pluginPage'
             );
         }
@@ -206,10 +225,33 @@ class CustpGonfig
         <?php
     }
 
-        // callback function to render the intro of the section 
-    function settings_section_callback(  ) 
-    { 
-        echo __( '', 'custplace_plugin' );
-    }
+        // get the order infos with the status completed 
+    function get_completed_orders_infos( $order_id ) {
+        $order = new WC_Order($order_id);
+
+        $order_infos['order_id'] = $order->get_id();
+        $order_infos['costumer_last_name'] = $order->get_billing_last_name();
+        $order_infos['costumer_first_name'] = $order->get_billing_first_name();
+        $order_infos['costumer_email'] = $order->get_billing_email();
+        $order_infos['products'] = array();
+
+        foreach( $order->get_items() as $item_id => $item ) {
+            // $product_id = $item->get_product_id();
+            $product_name = $item->get_name();
+            $product = $item->get_product();
+            $item_sku = $product->get_sku();
+            $product_link = $product->get_permalink();
+
+            array_push($order_infos['products'], array(
+                'sku'           => $item_sku,
+                'name'          => $product_name,
+                'url'  => $product_link 
+            ));
+        }
+        var_dump($order_infos); 
+        die();
+    }                       
 
 }   
+
+$custplace_obj = new Custplace();
