@@ -3,7 +3,6 @@
     * Plugin Name: Custplace
     * Description: Custplace plugin test.
     */
-
     if ( ! defined( 'ABSPATH' ) ) {
         exit; // Exit if accessed directly
     };

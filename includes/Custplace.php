@@ -7,6 +7,9 @@ class Custplace
         add_action( 'admin_menu', array($this, 'add_admin_menu')  );
         add_action( 'admin_init', array($this, 'settings_init') );
         add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
+        add_action( 'woocommerce_after_order_notes', 
+            function ($check) { echo "this is a text after order notes";} 
+        );
     }
 
     public static function activate()
@@ -65,28 +68,28 @@ class Custplace
             // Array contains the infos of the input fields
         $fields = array(
             array(
-                'name'    => 'cp_field1_section1',
+                'name'    => 'id_client',
                 'label'   => 'ID client',
                 'type'    => 'number',
                 'section' => 'cp_pluginPage_section1',
                 'description' => ""
             ),
             array(
-                'name'    => 'cp_field2_section1',
+                'name'    => 'cle_api',
                 'label'   => 'Clé API',
                 'type'    => 'password',
                 'section' => 'cp_pluginPage_section1',
                 'description' => ""
             ),
             array(
-                'name'    => 'cp_field1_section2',
+                'name'    => 'delai_sollicitation',
                 'label'   => 'Delai de sollicitation',
                 'type'    => 'number',
                 'section' => 'cp_pluginPage_section2',
                 'description' => "jours"
             ),
             array(
-                'name'    => 'cp_field1_section3',
+                'name'    => 'cel_widget',
                 'label'   => 'Clé widget',
                 'type'    => 'password',
                 'section' => 'cp_pluginPage_section3',
@@ -229,10 +232,10 @@ class Custplace
     function get_completed_orders_infos( $order_id ) {
         $order = new WC_Order($order_id);
 
-        $order_infos['order_id'] = $order->get_id();
-        $order_infos['costumer_last_name'] = $order->get_billing_last_name();
-        $order_infos['costumer_first_name'] = $order->get_billing_first_name();
-        $order_infos['costumer_email'] = $order->get_billing_email();
+        $order_infos['order_ref'] = $order->get_id();
+        $order_infos['lastname'] = $order->get_billing_last_name();
+        $order_infos['firstname'] = $order->get_billing_first_name();
+        $order_infos['email'] = $order->get_billing_email();
         $order_infos['products'] = array();
 
         foreach( $order->get_items() as $item_id => $item ) {
@@ -242,14 +245,39 @@ class Custplace
             $item_sku = $product->get_sku();
             $product_link = $product->get_permalink();
 
-            array_push($order_infos['products'], array(
-                'sku'           => $item_sku,
-                'name'          => $product_name,
-                'url'  => $product_link 
-            ));
+            $order_infos['products'][] = array(
+                'sku'   => $item_sku,
+                'name'  => $product_name,
+                'url'   => $product_link,
+                'image' => $product_link
+            );
         }
-        var_dump($order_infos); 
-        die();
+        
+
+        // insert data in the database before sending them via the API
+        global $wpdb; 
+        
+        $table_name =  $wpdb->prefix . 'custplace';
+        $id_order = $order_infos['order_ref'];
+        $date = date('Y-m-d');        
+
+        $wpdb->query( "INSERT INTO $table_name(id_order, date_order, status_order) VALUES( '$id_order', '$date', 'pending')" );
+         
+        
+
+        // create "CustplaceApi" object to send order data to the web server
+        require_once plugin_dir_path( dirname( __FILE__ ) ) . '/includes/CustplaceApi.php';
+        $custplace_api_obj = new CustplaceApi();
+
+        $options = get_option( 'custp_settings' );        
+        $order_infos['order_date'] = date('d/m/Y');
+        $response = $custplace_api_obj->save($order_infos, $options['id_client'], $options['cle_api']);
+        
+        $status_order = $response == "success"? "OK" : "KO";
+         
+        $wpdb->query("UPDATE $table_name SET status_order = '$status_order' WHERE id_order = '$id_order'"); 
+        
+        // var_dump($response); die();
     }                       
 
 }   
