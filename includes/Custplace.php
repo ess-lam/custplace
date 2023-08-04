@@ -7,13 +7,11 @@ class Custplace
         add_action( 'admin_menu', array($this, 'add_admin_menu')  );
         add_action( 'admin_init', array($this, 'settings_init') );
         add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
-        // add_action( 'woocommerce_after_order_notes', 
-        //     function ($check) { echo "this is a text after order notes";} 
-        // );
+        
     }
 
     /**
-     * this static method creates a table named "wp_custplace" on activation
+     * This static method creates a table named "wp_custplace" on activation
      *
      * @return void
      */
@@ -37,7 +35,7 @@ class Custplace
     }
 
     /**
-     *  Adds a top-level menu page named "Custplace" .
+     * Adds a top-level menu page named "Custplace" .
      * 
      * @return void
      */
@@ -50,7 +48,7 @@ class Custplace
     /**
      * Register "custp_settings" data in the option table.
      * 
-     * defines the sections and fields and adds them to the "pluginPage" option_group.
+     * Defines the sections and fields and adds them to the "pluginPage" option_group.
      * @return void
      */
     function settings_init(  ) 
@@ -82,9 +80,9 @@ class Custplace
         } 
 
         /**
-         * fields array contains the infos of the first four input fields.
+         * The fields array contains the informations of the first four input fields.
          * 
-         * the field attributes : name, label, type, section, description.
+         * field attributes : name, label, type, section, description.
          * 
          */ 
         $fields = array(
@@ -164,7 +162,7 @@ class Custplace
     }
 
     /**
-     * callback function of "add_menu_page" to render the Custplace page .
+     * Callback function of "add_menu_page" to render the Custplace page .
      *
      * @return void
      */
@@ -201,7 +199,7 @@ class Custplace
     }
 
     /**
-     * callback function to render the settings fields except the fields 
+     * Callback function to render the settings fields except the fields 
      * of type radio .
      *
      * @param   array   $args
@@ -228,7 +226,7 @@ class Custplace
     }
 
     /**
-     * callback function to render the fields of type radio .
+     * Callback function to render the fields of type radio .
      *
      * @param   array   $args
      * @return  void
@@ -265,12 +263,12 @@ class Custplace
     }
 
     /**
-     * callback function fires when the order status is completed.
+     * Callback function fires when the order status is completed.
      * 
-     * get the order infos of status completed and send them 
-     * via an API to Custplace web server.
+     * Get the order data of status completed and send them via an API  
+     * to Custplace web server.
      * 
-     * order attributes : order_ref, lastname, firstname, email, order_date,
+     * Order attributes : order_ref, lastname, firstname, email, order_date,
      *                    products(sku, name, url, image)
      * 
      * @param   integer  $order_id
@@ -302,7 +300,7 @@ class Custplace
         
 
         /**
-         * insert data in the "wp_custplace" table before sending them to the web server .
+         * Insert order data in the "wp_custplace" table before sending them to the web server .
          * 
          */
         global $wpdb; 
@@ -315,7 +313,7 @@ class Custplace
          
 
         /**
-         * create "CustplaceApi" object to send order data to the web server .
+         * Create "CustplaceApi" object to send order data to the web server .
          * 
          */ 
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '/includes/CustplaceApi.php';
@@ -326,7 +324,7 @@ class Custplace
         $response = $custplace_api_obj->send($order_infos, $options['id_client'], $options['cle_api']);
         
         /**
-         * update the status order in the "wp_custplace" table depending on
+         * Update the status order in the "wp_custplace" table depending on
          * the response of the web server .
          * 
          */ 

@@ -4,7 +4,7 @@ class CustplaceApi
 {
 
     /**
-     * send order data to custplace web server.
+     * Send order data to Custplace web server and return the response of the server.
      *
      * @param   array       $order
      * @param   integer     $client_id
