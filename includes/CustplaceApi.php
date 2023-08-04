@@ -2,9 +2,16 @@
 
 class CustplaceApi 
 {
-    
 
-    function save($order, $client_id, $api_key )
+    /**
+     * send order data to custplace web server.
+     *
+     * @param   array       $order
+     * @param   integer     $client_id
+     * @param   string      $api_key
+     * @return  string
+     */
+    function send($order, $client_id, $api_key )
     {
         $url ="https://apis.custplace.com/v3/$client_id/invitations";
         $data = array("type" => "post_review") + $order;
@@ -29,8 +36,7 @@ class CustplaceApi
         $status = json_decode($response)->code; 
         return $status;
 
-        // var_dump( $response, "\n", $data,"\n", json_decode($response)->code);
-        // die();
+        
     }
 }
 

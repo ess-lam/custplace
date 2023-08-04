@@ -7,11 +7,16 @@ class Custplace
         add_action( 'admin_menu', array($this, 'add_admin_menu')  );
         add_action( 'admin_init', array($this, 'settings_init') );
         add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
-        add_action( 'woocommerce_after_order_notes', 
-            function ($check) { echo "this is a text after order notes";} 
-        );
+        // add_action( 'woocommerce_after_order_notes', 
+        //     function ($check) { echo "this is a text after order notes";} 
+        // );
     }
 
+    /**
+     * this static method creates a table named "wp_custplace" on activation
+     *
+     * @return void
+     */
     public static function activate()
     {
         global $wpdb;
@@ -31,12 +36,23 @@ class Custplace
 	    flush_rewrite_rules(); 
     }
 
+    /**
+     *  Adds a top-level menu page named "Custplace" .
+     * 
+     * @return void
+     */
     function add_admin_menu(  ) 
     { 
         add_menu_page( 'Custplace Page', 'Custplace',
         'manage_options', 'custplace', array($this, 'options_page') );
     }
 
+    /**
+     * Register "custp_settings" data in the option table.
+     * 
+     * defines the sections and fields and adds them to the "pluginPage" option_group.
+     * @return void
+     */
     function settings_init(  ) 
     {
         register_setting( 'pluginPage', 'custp_settings' );
@@ -56,16 +72,21 @@ class Custplace
             )
         );
 
-        // add the sections
         foreach( $sections as $section ) {
             add_settings_section(
                 $section['id'], 
                 __( $section['title'], 'custplace_plugin' ), 
-                function() { return ""; }, 
+                fn() => "", 
                 'pluginPage'
             );
-        }
-            // Array contains the infos of the input fields
+        } 
+
+        /**
+         * fields array contains the infos of the first four input fields.
+         * 
+         * the field attributes : name, label, type, section, description.
+         * 
+         */ 
         $fields = array(
             array(
                 'name'    => 'id_client',
@@ -97,7 +118,6 @@ class Custplace
             )
         );
         
-        // add the fields of the first section 
         foreach( $fields as $field ) {
             add_settings_field( 
                 $field['name'], 
@@ -113,7 +133,9 @@ class Custplace
             );    
         }
 
-        // add the radios fields of the third section
+        /**
+         * add the radios fields to the third section .
+         */ 
         add_settings_field( 
             'cp_field2_section3', 
             __( 'Widget Avis Produit', 'custplace_plugin' ), 
@@ -141,7 +163,11 @@ class Custplace
 
     }
 
-        // callback function of "add_admin_menu" to render the settings page 
+    /**
+     * callback function of "add_menu_page" to render the Custplace page .
+     *
+     * @return void
+     */
     function options_page(  ) 
     { 
         // check user capabilities
@@ -162,7 +188,6 @@ class Custplace
         settings_errors( 'myplugin_settings_messages' );
         ?>
         <form action='options.php' method='post'>
-
             <h2>Custplace</h2>
 
             <?php
@@ -170,13 +195,18 @@ class Custplace
             do_settings_sections( 'pluginPage' );
             submit_button();
             ?>
-
         </form>
         <?php
         
     }
 
-            // the function to render the fields
+    /**
+     * callback function to render the settings fields except the fields 
+     * of type radio .
+     *
+     * @param   array   $args
+     * @return  void
+     */ 
     function render_input_field( $args ) 
     { 
         $options = get_option( 'custp_settings' );
@@ -196,7 +226,13 @@ class Custplace
             }
         
     }
-        // the function to render the radio fields
+
+    /**
+     * callback function to render the fields of type radio .
+     *
+     * @param   array   $args
+     * @return  void
+     */
     function render_input_radio_field( $args ) 
     {
         $options = get_option( 'custp_settings' );
@@ -228,7 +264,18 @@ class Custplace
         <?php
     }
 
-        // get the order infos with the status completed 
+    /**
+     * callback function fires when the order status is completed.
+     * 
+     * get the order infos of status completed and send them 
+     * via an API to Custplace web server.
+     * 
+     * order attributes : order_ref, lastname, firstname, email, order_date,
+     *                    products(sku, name, url, image)
+     * 
+     * @param   integer  $order_id
+     * @return void
+     */ 
     function get_completed_orders_infos( $order_id ) {
         $order = new WC_Order($order_id);
 
@@ -254,7 +301,10 @@ class Custplace
         }
         
 
-        // insert data in the database before sending them via the API
+        /**
+         * insert data in the "wp_custplace" table before sending them to the web server .
+         * 
+         */
         global $wpdb; 
         
         $table_name =  $wpdb->prefix . 'custplace';
@@ -263,16 +313,23 @@ class Custplace
 
         $wpdb->query( "INSERT INTO $table_name(id_order, date_order, status_order) VALUES( '$id_order', '$date', 'pending')" );
          
-        
 
-        // create "CustplaceApi" object to send order data to the web server
+        /**
+         * create "CustplaceApi" object to send order data to the web server .
+         * 
+         */ 
         require_once plugin_dir_path( dirname( __FILE__ ) ) . '/includes/CustplaceApi.php';
         $custplace_api_obj = new CustplaceApi();
 
         $options = get_option( 'custp_settings' );        
         $order_infos['order_date'] = date('d/m/Y');
-        $response = $custplace_api_obj->save($order_infos, $options['id_client'], $options['cle_api']);
+        $response = $custplace_api_obj->send($order_infos, $options['id_client'], $options['cle_api']);
         
+        /**
+         * update the status order in the "wp_custplace" table depending on
+         * the response of the web server .
+         * 
+         */ 
         $status_order = $response == "success"? "OK" : "KO";
          
         $wpdb->query("UPDATE $table_name SET status_order = '$status_order' WHERE id_order = '$id_order'"); 
