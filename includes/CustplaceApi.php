@@ -40,16 +40,3 @@ class CustplaceApi
     }
 }
 
-// array(
-//     "account_id" => $options['id_client'],
-//     "type"       => '',
-//     "email"      => '',
-//     "order_ref"  => '',
-//     "firstname"  => '',
-//     "lastname"   => '',
-//     "products"  => [
-//         "products[sku]"     => '',
-//         "products[name]"    => '',
-//         "products[website]" => '',
-//     ]
-// )

@@ -7,11 +7,13 @@ class Custplace
         add_action( 'admin_menu', array($this, 'add_admin_menu')  );
         add_action( 'admin_init', array($this, 'settings_init') );
         add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
-        
+        add_filter( 'woocommerce_order_actions', array($this, 'add_order_action'));
+        add_action( 'woocommerce_order_action_my_action', array($this, 'my_order_action_function') );
+        add_action( 'admin_footer', array($this, 'add_order_status_table_after_order_notes') );
     }
 
     /**
-     * This static method creates a table named "wp_custplace" on activation
+     * This static method creates a table named "wp_custplace" on activation.
      *
      * @return void
      */
@@ -19,7 +21,7 @@ class Custplace
     {
         global $wpdb;
         $table_name = $wpdb->prefix . 'custplace';
-        $sql = "CREATE TABLE $table_name (
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
             id int unsigned NOT NULL AUTO_INCREMENT,
             id_order int unsigned NOT NULL,
             date_order date NOT NULL,
@@ -162,7 +164,7 @@ class Custplace
     }
 
     /**
-     * Callback function of "add_menu_page" to render the Custplace page .
+     * Callback function of "add_menu_page" to render the Custplace plugin page .
      *
      * @return void
      */
@@ -277,6 +279,10 @@ class Custplace
     function get_completed_orders_infos( $order_id ) {
         $order = new WC_Order($order_id);
 
+        if($order->get_status() != "completed") {
+            return;
+        }
+
         $order_infos['order_ref'] = $order->get_id();
         $order_infos['lastname'] = $order->get_billing_last_name();
         $order_infos['firstname'] = $order->get_billing_first_name();
@@ -307,9 +313,8 @@ class Custplace
         
         $table_name =  $wpdb->prefix . 'custplace';
         $id_order = $order_infos['order_ref'];
-        $date = date('Y-m-d');        
-
-        $wpdb->query( "INSERT INTO $table_name(id_order, date_order, status_order) VALUES( '$id_order', '$date', 'pending')" );
+        $date = $order->get_date_completed();
+        $wpdb->query( "INSERT INTO $table_name(id_order, date_order, status_order) VALUES('$id_order', '$date', 'pending')" );
          
 
         /**
@@ -320,7 +325,8 @@ class Custplace
         $custplace_api_obj = new CustplaceApi();
 
         $options = get_option( 'custp_settings' );        
-        $order_infos['order_date'] = date('d/m/Y');
+        $order_infos['order_date'] = $date->date('d/m/Y');
+
         $response = $custplace_api_obj->send($order_infos, $options['id_client'], $options['cle_api']);
         
         /**
@@ -330,11 +336,88 @@ class Custplace
          */ 
         $status_order = $response == "success"? "OK" : "KO";
          
-        $wpdb->query("UPDATE $table_name SET status_order = '$status_order' WHERE id_order = '$id_order'"); 
+        $wpdb->query("UPDATE $table_name SET status_order = '$status_order' WHERE id_order = '$id_order' AND status_order = 'pending'"); 
         
         // var_dump($response); die();
-    }                       
+    } 
+    
+    /**
+     * Callback function displays an action option on the metabox 
+     * drop-down of the edit order page .
+     *
+     * @param   array    $actions
+     * @return  array
+     */
+    function add_order_action( $actions )
+    {
+        global $theorder;
+        
+        if ( ! is_a( $theorder, 'WC_Order' ) ) {
+            return $actions;
+        }
+
+        $actions['my_action'] = __( "envoyer une sollicitation d'avis", 'custplace_plugin' );
+        return $actions;
+        
+    }
+
+    /**
+     * Callback function fires when my custom order action is selected.
+     *
+     * @param  object   $order
+     * @return void
+     */
+    function my_order_action_function( $order )
+    {
+        $this->get_completed_orders_infos( $order->id );
+    }
+
+
+    /**
+     * Display "date_order" and "status_order" data under order notes metabox
+     * using Javascript.
+     * 
+     * @return void
+     */ 
+    function add_order_status_table_after_order_notes() {
+
+        // Check if we are on the order edit page
+        if (get_post_type() === 'shop_order' && isset($_GET['post'])) {
+            $order_id = $_GET['post'];
+            
+            global $wpdb;
+
+            $table_name = $wpdb->prefix . 'custplace';
+
+            $query = "SELECT date_order, status_order FROM $table_name WHERE id_order = $order_id";
+            $results = $wpdb->get_results( $query, ARRAY_A );
+
+            ?>
+            <script>
+                jQuery(document).ready(function($) {
+                    // Find the order notes metabox
+                    var orderNotesMetabox = $('#woocommerce-order-notes');
+
+                    // Create and append your custom HTML table
+                    var customTableHtml = '<table class="widefat fixed" style="margin-bottom:20px">' +
+                                        '<thead><tr><th>Date</th><th>Status</th></tr></thead>' +
+                                        '<tbody>';
+                    
+                    <?php foreach ( $results as $row ) : ?>
+                        customTableHtml += '<tr><td><?php echo esc_js( $row['date_order'] ); ?></td><td><?php echo esc_js( $row['status_order'] ); ?></td></tr>';
+                    <?php endforeach; ?>
+
+                    customTableHtml += '</tbody></table>';
+                    // Insert the custom table after the order notes metabox
+                    orderNotesMetabox.after(customTableHtml);
+                });
+            </script>
+            <?php
+        }
+    }
 
 }   
 
+    
 $custplace_obj = new Custplace();
+
