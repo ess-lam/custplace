@@ -14,13 +14,16 @@
         {
             function __construct()
             {
+                // create the custplace page  
                 add_action( 'admin_menu', array($this, 'add_admin_menu')  );
                 add_action( 'admin_init', array($this, 'settings_init') );
 
+                // hooks to manage an order on completed status 
                 add_action( 'woocommerce_order_status_completed', array($this, 'get_completed_orders_infos'), 10, 1 );
                 add_filter( 'woocommerce_order_actions', array($this, 'add_custplace_order_action'));
                 add_action( 'woocommerce_order_action_custplace_order_action', array($this, 'custplace_order_action_function') );
                 
+                // display a table of completed order status after Being sent to Custplace API                
                 add_action( 'add_meta_boxes', array( $this, 'custplace_order_status_meta_box') );
             }
         
