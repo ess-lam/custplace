@@ -383,10 +383,11 @@
              * 
              * @return void
              */          
-            function custplace_order_status_meta_box() {
+            function custplace_order_status_meta_box() 
+            {
                 add_meta_box( 
                     'custplace_custom_data_metabox',
-                    __( 'Custom Data Table', 'text-domain' ),
+                    __( 'Custplace Data Table', 'text-domain' ),
                     array($this, 'custplace_order_status'),
                     'shop_order',
                     'side',
@@ -432,10 +433,7 @@
 
                 
             }
-        }   
-        
-            
-        
+        }           
     }
 
     $custplace_obj = new Custplace();
