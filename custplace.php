@@ -355,13 +355,24 @@
              */
             function add_custplace_order_action( $actions )
             {
-                global $theorder;
-                
-                if ( $theorder->get_status() != "completed" || !is_a( $theorder, 'WC_Order') ) {
-                    return $actions;
+                global $theorder, $wpdb;
+                if ( is_a( $theorder, 'WC_Order') )
+                {
+                    $order_id = $theorder->get_id();
+                    $table_name = $wpdb->prefix . 'custplace';
+                    
+                    $status = $wpdb->get_var(
+                        $wpdb->prepare(
+                            "SELECT status_order FROM $table_name WHERE id_order = %d AND status_order = %s",
+                            $order_id,
+                            'OK'
+                        )
+                    );
+
+                    if ( $theorder->get_status() == "completed" && $status != 'OK') {
+                        $actions['custplace_order_action'] = __( "envoyer une sollicitation d'avis", 'custplace_plugin' );    
+                    }
                 }
-        
-                $actions['custplace_order_action'] = __( "envoyer une sollicitation d'avis", 'custplace_plugin' );
                 return $actions;
             }
         
@@ -376,7 +387,7 @@
                 $this->get_completed_orders_infos( $order->id );
             }
         
-        
+            
             /**
              * Callback function to add a custom metabox that shows the "date_order" and "status_order"
              * of the "wp_custplace" table .
@@ -394,6 +405,7 @@
                     'low' 
                 );
             }
+
             /**
              * Callback function to display the content of the order custom metabox
              * in the single order edit page.
